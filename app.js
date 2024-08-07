@@ -1,55 +1,36 @@
+// app.js
 const express = require('express');
 const bodyParser = require('body-parser');
-const mysql = require('mysql');
-const path = require('path');
+const db = require('./database');
 
 const app = express();
 const PORT = 3000;
 
-// Configurar EJS
+// Configuración de EJS
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-
-// Configurar Body Parser
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// Conectar a la base de datos MySQL
-const db = mysql.createConnection({
-    host: 'localhost', // Cambia esto si tu servidor no está en localhost
-    user: 'tu_usuario', // Tu usuario de MySQL
-    password: 'tu_contraseña', // Tu contraseña de MySQL
-    database: 'productos_db' // Nombre de tu base de datos
-});
-
-// Verifica la conexión
-db.connect((err) => {
-    if (err) {
-        console.error('Error conectando a la base de datos: ' + err.stack);
-        return;
-    }
-    console.log('Conectado a la base de datos MySQL.');
-});
-
-// Ruta principal
+// Ruta para la página principal
 app.get('/', (req, res) => {
     res.render('index');
 });
 
-// Ruta para guardar el producto
-app.post('/add-product', (req, res) => {
+// Ruta para procesar el formulario
+app.post('/agregar-producto', (req, res) => {
     const { nombre, precio, iva } = req.body;
-    const total = parseFloat(precio) + (parseFloat(precio) * (parseFloat(iva) / 100));
+    const precioFinal = parseFloat(precio) + (parseFloat(precio) * (parseFloat(iva) / 100));
 
-    db.query(`INSERT INTO productos (nombre, precio, iva, total) VALUES (?, ?, ?, ?)`, [nombre, precio, iva, total], (err, result) => {
+    // Inserta en la base de datos
+    db.run(`INSERT INTO productos (nombre, precio, iva, precio_final) VALUES (?, ?, ?, ?)`, [nombre, precio, iva, precioFinal], (err) => {
         if (err) {
-            return console.error(err.message);
+            console.error(err.message);
         }
-        res.send(`Producto añadido: ${nombre} con total: ${total.toFixed(2)}`);
+        res.render('resultado', { nombre, precio, iva, precioFinal });
     });
 });
 
 // Iniciar el servidor
 app.listen(PORT, () => {
-    console.log(`Servidor escuchando en http://localhost:${PORT}`);
+    console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
